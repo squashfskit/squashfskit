@@ -112,9 +112,9 @@ void display_compressors(char *indent, char *def_comp)
 	for(i = 0; compressor[i]->id; i++)
 		if(compressor[i]->supported)
 			fprintf(stderr, "%s\t%s%s\n", indent,
-				compressor[i]->name,
-				strcmp(compressor[i]->name, def_comp) == 0 ?
-				" (default)" : "");
+					compressor[i]->name,
+					strcmp(compressor[i]->name, def_comp) == 0 ?
+					" (default)" : "");
 }
 
 
@@ -125,13 +125,13 @@ void display_compressor_usage(char *def_comp)
 	for(i = 0; compressor[i]->id; i++)
 		if(compressor[i]->supported) {
 			char *str = strcmp(compressor[i]->name, def_comp) == 0 ?
-				" (default)" : "";
+						" (default)" : "";
 			if(compressor[i]->usage) {
 				fprintf(stderr, "\t%s%s\n",
-					compressor[i]->name, str);
+						compressor[i]->name, str);
 				compressor[i]->usage();
 			} else
 				fprintf(stderr, "\t%s (no options)%s\n",
-					compressor[i]->name, str);
+						compressor[i]->name, str);
 		}
 }

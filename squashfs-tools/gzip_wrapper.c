@@ -67,16 +67,16 @@ static int gzip_options(char *argv[], int argc)
 	if(strcmp(argv[0], "-Xcompression-level") == 0) {
 		if(argc < 2) {
 			fprintf(stderr, "gzip: -Xcompression-level missing "
-				"compression level\n");
+					"compression level\n");
 			fprintf(stderr, "gzip: -Xcompression-level it "
-				"should be 1 >= n <= 9\n");
+					"should be 1 >= n <= 9\n");
 			goto failed;
 		}
 
 		compression_level = atoi(argv[1]);
 		if(compression_level < 1 || compression_level > 9) {
 			fprintf(stderr, "gzip: -Xcompression-level invalid, it "
-				"should be 1 >= n <= 9\n");
+					"should be 1 >= n <= 9\n");
 			goto failed;
 		}
 
@@ -84,7 +84,7 @@ static int gzip_options(char *argv[], int argc)
 	} else if(strcmp(argv[0], "-Xwindow-size") == 0) {
 		if(argc < 2) {
 			fprintf(stderr, "gzip: -Xwindow-size missing window "
-				"	size\n");
+					"	size\n");
 			fprintf(stderr, "gzip: -Xwindow-size <window-size>\n");
 			goto failed;
 		}
@@ -92,7 +92,7 @@ static int gzip_options(char *argv[], int argc)
 		window_size = atoi(argv[1]);
 		if(window_size < 8 || window_size > 15) {
 			fprintf(stderr, "gzip: -Xwindow-size invalid, it "
-				"should be 8 >= n <= 15\n");
+					"should be 8 >= n <= 15\n");
 			goto failed;
 		}
 
@@ -103,7 +103,7 @@ static int gzip_options(char *argv[], int argc)
 
 		if(argc < 2) {
 			fprintf(stderr, "gzip: -Xstrategy missing "
-							"strategies\n");
+					"strategies\n");
 			goto failed;
 		}
 
@@ -115,7 +115,7 @@ static int gzip_options(char *argv[], int argc)
 						(name[n] == '\0' ||
 						 name[n] == ',')) {
 					if(strategy[i].selected == 0) {
-				 		strategy[i].selected = 1;
+						strategy[i].selected = 1;
 						strategy_count++;
 					}
 					name += name[n] == ',' ? n + 1 : n;
@@ -124,11 +124,11 @@ static int gzip_options(char *argv[], int argc)
 			}
 			if(strategy[i].name == NULL) {
 				fprintf(stderr, "gzip: -Xstrategy unrecognised "
-					"strategy\n");
+						"strategy\n");
 				goto failed;
 			}
 		}
-	
+
 		return 1;
 	}
 
@@ -183,8 +183,8 @@ static void *gzip_dump_options(int block_size, int *size)
 	 * with the legacy implementation of GZIP for Squashfs)
 	 */
 	if(compression_level == GZIP_DEFAULT_COMPRESSION_LEVEL &&
-				window_size == GZIP_DEFAULT_WINDOW_SIZE &&
-				strategy_count == 0)
+			window_size == GZIP_DEFAULT_WINDOW_SIZE &&
+			strategy_count == 0)
 		return NULL;
 
 	for(i = 0; strategy[i].name; i++)
@@ -244,7 +244,7 @@ static int gzip_extract_options(int block_size, void *buffer, int size)
 	if(comp_opts->compression_level < 1 ||
 			comp_opts->compression_level > 9) {
 		fprintf(stderr, "gzip: bad compression level in "
-			"compression options structure\n");
+				"compression options structure\n");
 		goto failed;
 	}
 	compression_level = comp_opts->compression_level;
@@ -252,7 +252,7 @@ static int gzip_extract_options(int block_size, void *buffer, int size)
 	if(comp_opts->window_size < 8 ||
 			comp_opts->window_size > 15) {
 		fprintf(stderr, "gzip: bad window size in "
-			"compression options structure\n");
+				"compression options structure\n");
 		goto failed;
 	}
 	window_size = comp_opts->window_size;
@@ -265,12 +265,12 @@ static int gzip_extract_options(int block_size, void *buffer, int size)
 		} else
 			strategy[i].selected = 0;
 	}
-	
+
 	return 0;
 
 failed:
 	fprintf(stderr, "gzip: error reading stored compressor options from "
-		"filesystem!\n");
+			"filesystem!\n");
 
 	return -1;
 }
@@ -291,7 +291,7 @@ void gzip_display_options(void *buffer, int size)
 	if(comp_opts->compression_level < 1 ||
 			comp_opts->compression_level > 9) {
 		fprintf(stderr, "gzip: bad compression level in "
-			"compression options structure\n");
+				"compression options structure\n");
 		goto failed;
 	}
 	printf("\tcompression-level %d\n", comp_opts->compression_level);
@@ -299,7 +299,7 @@ void gzip_display_options(void *buffer, int size)
 	if(comp_opts->window_size < 8 ||
 			comp_opts->window_size > 15) {
 		fprintf(stderr, "gzip: bad window size in "
-			"compression options structure\n");
+				"compression options structure\n");
 		goto failed;
 	}
 	printf("\twindow-size %d\n", comp_opts->window_size);
@@ -324,8 +324,8 @@ void gzip_display_options(void *buffer, int size)
 
 failed:
 	fprintf(stderr, "gzip: error reading stored compressor options from "
-		"filesystem!\n");
-}	
+			"filesystem!\n");
+}
 
 
 /*
@@ -349,12 +349,12 @@ static int gzip_init(void **strm, int block_size, int datablock)
 		stream->strategy[0].strategy = Z_DEFAULT_STRATEGY;
 	} else {
 		stream = malloc(sizeof(*stream) +
-			sizeof(struct gzip_strategy) * strategy_count);
+						sizeof(struct gzip_strategy) * strategy_count);
 		if(stream == NULL)
 			goto failed;
 
 		memset(stream->strategy, 0, sizeof(struct gzip_strategy) *
-			strategy_count);
+			   strategy_count);
 
 		stream->strategies = strategy_count;
 
@@ -371,13 +371,13 @@ static int gzip_init(void **strm, int block_size, int datablock)
 			j++;
 		}
 	}
-		
+
 	stream->stream.zalloc = Z_NULL;
 	stream->stream.zfree = Z_NULL;
 	stream->stream.opaque = 0;
 
 	res = deflateInit2(&stream->stream, compression_level, Z_DEFLATED,
-		window_size, 8, stream->strategy[0].strategy);
+					   window_size, 8, stream->strategy[0].strategy);
 	if(res != Z_OK)
 		goto failed2;
 
@@ -394,7 +394,7 @@ failed:
 
 
 static int gzip_compress(void *strm, void *d, void *s, int size, int block_size,
-		int *error)
+						 int *error)
 {
 	int i, res;
 	struct gzip_stream *stream = strm;
@@ -416,7 +416,7 @@ static int gzip_compress(void *strm, void *d, void *s, int size, int block_size,
 
 		if(stream->strategies > 1) {
 			res = deflateParams(&stream->stream,
-				compression_level, strategy->strategy);
+								compression_level, strategy->strategy);
 			if(res != Z_OK)
 				goto failed;
 		}
@@ -471,16 +471,16 @@ void gzip_usage()
 {
 	fprintf(stderr, "\t  -Xcompression-level <compression-level>\n");
 	fprintf(stderr, "\t\t<compression-level> should be 1 .. 9 (default "
-		"%d)\n", GZIP_DEFAULT_COMPRESSION_LEVEL);
+			"%d)\n", GZIP_DEFAULT_COMPRESSION_LEVEL);
 	fprintf(stderr, "\t  -Xwindow-size <window-size>\n");
 	fprintf(stderr, "\t\t<window-size> should be 8 .. 15 (default "
-		"%d)\n", GZIP_DEFAULT_WINDOW_SIZE);
+			"%d)\n", GZIP_DEFAULT_WINDOW_SIZE);
 	fprintf(stderr, "\t  -Xstrategy strategy1,strategy2,...,strategyN\n");
 	fprintf(stderr, "\t\tCompress using strategy1,strategy2,...,strategyN"
-		" in turn\n");
+			" in turn\n");
 	fprintf(stderr, "\t\tand choose the best compression.\n");
 	fprintf(stderr, "\t\tAvailable strategies: default, filtered, "
-		"huffman_only,\n\t\trun_length_encoded and fixed\n");
+			"huffman_only,\n\t\trun_length_encoded and fixed\n");
 }
 
 
