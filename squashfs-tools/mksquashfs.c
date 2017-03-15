@@ -137,8 +137,8 @@ unsigned int cache_bytes = 0, cache_size = 0, inode_count = 0;
 /* inode lookup table */
 squashfs_inode *inode_lookup_table = NULL;
 
-/* override all timestamps */
-time_t content_fixed_time = -1;
+/* clamp all timestamps to SOURCE_DATE_EPOCH */
+time_t content_clamp_time = -1;
 
 /* override filesystem creation time */
 time_t mkfs_fixed_time = -1;
@@ -2258,8 +2258,8 @@ restat:
 			pathname_reader(dir_ent), strerror(errno));
 		goto read_err;
 	}
-	if (content_fixed_time != -1)
-		buf2.st_mtime = content_fixed_time;
+	if(content_clamp_time != -1 && buf2.st_mtime >= content_clamp_time)
+		buf2.st_mtime = content_clamp_time;
 
 	if(read_size != buf2.st_size) {
 		close(file);
@@ -3114,7 +3114,7 @@ void dir_scan(squashfs_inode *inode, char *pathname,
 		buf.st_mode = S_IRWXU | S_IRWXG | S_IRWXO | S_IFDIR;
 		buf.st_uid = getuid();
 		buf.st_gid = getgid();
-		buf.st_mtime = content_fixed_time != -1 ? content_fixed_time : time(NULL);
+		buf.st_mtime = content_clamp_time != -1 ? content_clamp_time : time(NULL);
 		buf.st_dev = 0;
 		buf.st_ino = 0;
 		dir_ent->inode = lookup_inode2(&buf, PSEUDO_FILE_OTHER, 0);
@@ -3123,8 +3123,8 @@ void dir_scan(squashfs_inode *inode, char *pathname,
 			/* source directory has disappeared? */
 			BAD_ERROR("Cannot stat source directory %s because %s\n",
 				pathname, strerror(errno));
-		if(content_fixed_time != -1)
-			buf.st_mtime = content_fixed_time;
+		if(content_clamp_time != -1 && buf.st_mtime >= content_clamp_time)
+			buf.st_mtime = content_clamp_time;
 		dir_ent->inode = lookup_inode(&buf);
 	}
 
@@ -3380,8 +3380,8 @@ struct dir_info *dir_scan1(char *filename, char *subpath,
 			free_dir_entry(dir_ent);
 			continue;
 		}
-		if(content_fixed_time != -1)
-			buf.st_mtime = content_fixed_time;
+		if(content_clamp_time != -1 && buf.st_mtime >= content_clamp_time)
+			buf.st_mtime = content_clamp_time;
 
 		if((buf.st_mode & S_IFMT) != S_IFREG &&
 					(buf.st_mode & S_IFMT) != S_IFDIR &&
@@ -3561,7 +3561,7 @@ void dir_scan2(struct dir_info *dir, struct pseudo *pseudo)
 		buf.st_gid = pseudo_ent->dev->gid;
 		buf.st_rdev = makedev(pseudo_ent->dev->major,
 			pseudo_ent->dev->minor);
-		buf.st_mtime = content_fixed_time != -1 ? content_fixed_time : time(NULL);
+		buf.st_mtime = content_clamp_time != -1 ? content_clamp_time : time(NULL);
 		buf.st_ino = pseudo_ino ++;
 
 		if(pseudo_ent->dev->type == 'd') {
@@ -5124,6 +5124,9 @@ int main(int argc, char *argv[])
 	int total_mem = get_default_phys_mem();
 	int progress = TRUE;
 	int force_progress = FALSE;
+	char *source_date_epoch, *endptr;
+	unsigned long long epoch;
+
 	struct file_buffer **fragment = NULL;
 
 	if(argc > 1 && strcmp(argv[1], "-version") == 0) {
@@ -5344,24 +5347,6 @@ print_compressor_options:
 			force_progress = TRUE;
 		else if(strcmp(argv[i], "-no-exports") == 0)
 			exportable = FALSE;
-		else if(strcmp(argv[i], "-content-fixed-time") == 0) {
-			if((++i == argc) || (content_fixed_time =
-					strtoll(argv[i], &b, 10), *b != '\0')) {
-				ERROR("%s: -content-fixed-time missing or invalid "
-					"timestamp\n", argv[0]);
-
-				exit(1);
-			}
-		}
-		else if(strcmp(argv[i], "-mkfs-fixed-time") == 0) {
-			if((++i == argc) || (mkfs_fixed_time =
-					strtoll(argv[i], &b, 10), *b != '\0')) {
-				ERROR("%s: -mkfs-fixed-time missing or invalid "
-					"timestamp\n", argv[0]);
-
-				exit(1);
-			}
-		}
 		else if(strcmp(argv[i], "-processors") == 0) {
 			if((++i == argc) || !parse_num(argv[i], &processors)) {
 				ERROR("%s: -processors missing or invalid "
@@ -5603,8 +5588,6 @@ printOptions:
 			ERROR("-all-root\t\tmake all files owned by root\n");
 			ERROR("-force-uid uid\t\tset all file uids to uid\n");
 			ERROR("-force-gid gid\t\tset all file gids to gid\n");
-			ERROR("-mkfs-fixed-time time\t\tset mkfs timestamp by epoch\n");
-			ERROR("-content-fixed-time time\t\tset content timestamp by epoch\n");
 			ERROR("-nopad\t\t\tdo not pad filesystem to a multiple "
 				"of 4K\n");
 			ERROR("-keep-as-directory\tif one source directory is "
@@ -5679,6 +5662,36 @@ printOptions:
 			display_compressor_usage(COMP_DEFAULT);
 			exit(1);
 		}
+	}
+
+	/* if SOURCE_DATE_EPOCH is set, use that timestamp for the mkfs time */
+	source_date_epoch = getenv("SOURCE_DATE_EPOCH");
+	if(source_date_epoch) {
+		errno = 0;
+		epoch = strtoull(source_date_epoch, &endptr, 10);
+		if((errno == ERANGE && (epoch == ULLONG_MAX || epoch == 0))
+				|| (errno != 0 && epoch == 0)) {
+			ERROR("Environment variable $SOURCE_DATE_EPOCH: "
+				"strtoull: %s\n", strerror(errno));
+			EXIT_MKSQUASHFS();
+		}
+		if(endptr == source_date_epoch) {
+			ERROR("Environment variable $SOURCE_DATE_EPOCH: "
+				"No digits were found: %s\n", endptr);
+			EXIT_MKSQUASHFS();
+		}
+		if(*endptr != '\0') {
+			ERROR("Environment variable $SOURCE_DATE_EPOCH: "
+				"Trailing garbage: %s\n", endptr);
+			EXIT_MKSQUASHFS();
+		}
+		if(epoch > ULONG_MAX) {
+			ERROR("Environment variable $SOURCE_DATE_EPOCH: "
+				"value must be smaller than or equal to "
+				"%lu but was found to be: %llu \n", ULONG_MAX, epoch);
+			EXIT_MKSQUASHFS();
+		}
+		mkfs_fixed_time = content_clamp_time = (time_t)epoch;
 	}
 
 	/*
