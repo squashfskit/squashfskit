@@ -3179,7 +3179,7 @@ void dir_scan(squashfs_inode *inode, char *pathname,
 		sigaddset(&sigmask, SIGINT);
 		sigaddset(&sigmask, SIGTERM);
 		sigaddset(&sigmask, SIGUSR1);
-		if(pthread_sigmask(SIG_BLOCK, &sigmask, NULL) == -1)
+		if(pthread_sigmask(SIG_BLOCK, &sigmask, NULL) != 0)
 			BAD_ERROR("Failed to set signal mask\n");
 		write_destination(fd, SQUASHFS_START, 4, "\0\0\0\0");
 	}
@@ -4206,7 +4206,7 @@ void initialise_threads(int readq, int fragq, int bwriteq, int fwriteq,
 	sigemptyset(&sigmask);
 	sigaddset(&sigmask, SIGQUIT);
 	sigaddset(&sigmask, SIGHUP);
-	if(pthread_sigmask(SIG_BLOCK, &sigmask, NULL) == -1)
+	if(pthread_sigmask(SIG_BLOCK, &sigmask, NULL) != 0)
 		BAD_ERROR("Failed to set signal mask in intialise_threads\n");
 
 	/*
@@ -4217,7 +4217,7 @@ void initialise_threads(int readq, int fragq, int bwriteq, int fwriteq,
 	sigaddset(&sigmask, SIGINT);
 	sigaddset(&sigmask, SIGTERM);
 	sigaddset(&sigmask, SIGUSR1);
-	if(pthread_sigmask(SIG_BLOCK, &sigmask, &old_mask) == -1)
+	if(pthread_sigmask(SIG_BLOCK, &sigmask, &old_mask) != 0)
 		BAD_ERROR("Failed to set signal mask in intialise_threads\n");
 
 	if(processors == -1) {
@@ -4285,7 +4285,7 @@ void initialise_threads(int readq, int fragq, int bwriteq, int fwriteq,
 		       processors == 1 ? "" : "s");
 
 	/* Restore the signal mask for the main thread */
-	if(pthread_sigmask(SIG_SETMASK, &old_mask, NULL) == -1)
+	if(pthread_sigmask(SIG_SETMASK, &old_mask, NULL) != 0)
 		BAD_ERROR("Failed to set signal mask in intialise_threads\n");
 }
 
